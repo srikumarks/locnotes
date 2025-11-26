@@ -899,24 +899,43 @@ async function updateLocationInfo() {
 
     if (!currentPosition) {
         statusDiv.textContent = 'Location unavailable';
-        detailsDiv.textContent = '';
+        detailsDiv.innerHTML = '';
         return;
     }
 
     const matchingLocation = await findMatchingLocation();
 
-    let statusText = 'Location: ' +
-        (matchingLocation ? `${matchingLocation.nickname}` : 'Current position');
+    // Display location status
+    if (matchingLocation) {
+        statusDiv.innerHTML = `<strong>📍 ${matchingLocation.nickname}</strong>`;
 
-    if (matchingLocation && matchingLocation.hashtags && matchingLocation.hashtags.length > 0) {
-        statusText += ` (Tags: ${matchingLocation.hashtags.map(t => '#' + t).join(', ')})`;
+        // Build details with coordinates and hashtags
+        let detailsHTML = `<div style="margin-top: 0.5rem;">`;
+        detailsHTML += `<div style="font-size: 0.8rem; color: var(--text-muted);">`;
+        detailsHTML += `Lat: ${currentPosition.latitude.toFixed(6)}, `;
+        detailsHTML += `Lon: ${currentPosition.longitude.toFixed(6)}, `;
+        detailsHTML += `Accuracy: ±${Math.round(currentPosition.accuracy)}m`;
+        detailsHTML += `</div>`;
+
+        // Display hashtags if available
+        if (matchingLocation.hashtags && matchingLocation.hashtags.length > 0) {
+            detailsHTML += `<div style="margin-top: 0.5rem;">`;
+            matchingLocation.hashtags.forEach(tag => {
+                detailsHTML += `<span class="tag-badge">#${tag}</span>`;
+            });
+            detailsHTML += `</div>`;
+        }
+        detailsHTML += `</div>`;
+
+        detailsDiv.innerHTML = detailsHTML;
+    } else {
+        statusDiv.textContent = 'Location: Current position';
+        detailsDiv.innerHTML = `<div style="font-size: 0.8rem; color: var(--text-muted);">`;
+        detailsDiv.innerHTML += `Lat: ${currentPosition.latitude.toFixed(6)}, `;
+        detailsDiv.innerHTML += `Lon: ${currentPosition.longitude.toFixed(6)}, `;
+        detailsDiv.innerHTML += `Accuracy: ±${Math.round(currentPosition.accuracy)}m`;
+        detailsDiv.innerHTML += `</div>`;
     }
-
-    statusDiv.textContent = statusText;
-
-    detailsDiv.textContent = `Lat: ${currentPosition.latitude.toFixed(6)}, ` +
-                            `Lon: ${currentPosition.longitude.toFixed(6)}, ` +
-                            `Accuracy: ±${Math.round(currentPosition.accuracy)}m`;
 }
 
 // ===== MANAGE LOCATIONS =====
