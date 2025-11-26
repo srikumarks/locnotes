@@ -966,7 +966,7 @@ async function showManageLocations() {
                         <span class="button-text">Manage Tags</span>
                     </button>
                 </div>
-                <div style="font-size: 0.85rem; color: var(--pico-muted-color); margin-top: 0.25rem;">
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
                     Lat: ${loc.latitude.toFixed(6)}, Lon: ${loc.longitude.toFixed(6)}<br>
                     Created: ${new Date(loc.createdAt).toLocaleString()}
                 </div>
@@ -978,7 +978,9 @@ async function showManageLocations() {
         // Add click handlers for manage tags buttons
         locationsList.querySelectorAll('.manage-tags-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const locationId = parseInt(e.target.dataset.locationId);
+                // Get the button element (might click on span inside)
+                const button = e.target.closest('.manage-tags-btn');
+                const locationId = parseInt(button.dataset.locationId);
                 await showLocationTagging(locationId);
             });
         });
