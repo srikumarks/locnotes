@@ -1431,13 +1431,72 @@ async function init() {
         // Set initial history state
         history.replaceState({ view: 'notes', data: null }, '', '#notes');
 
-        // Refresh notes every minute to check for new scheduled notes
+        // Track location changes continuously with watchPosition
+        let lastUpdateTime = Date.now();
+        let lastKnownPosition = currentPosition ? { ...currentPosition } : null;
+
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                async (position) => {
+                    const newPosition = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                    };
+
+                    // Check if position changed significantly (more than 5 meters)
+                    let significantChange = false;
+                    if (lastKnownPosition) {
+                        const distance = calculateDistance(
+                            lastKnownPosition.latitude,
+                            lastKnownPosition.longitude,
+                            newPosition.latitude,
+                            newPosition.longitude
+                        );
+                        significantChange = distance > 5;
+                    } else {
+                        significantChange = true;
+                    }
+
+                    currentPosition = newPosition;
+
+                    // Update if significant location change or 30+ seconds passed
+                    const now = Date.now();
+                    if (significantChange || (now - lastUpdateTime) >= 30000) {
+                        console.log('Updating notes due to location/time change');
+                        lastUpdateTime = now;
+                        lastKnownPosition = { ...newPosition };
+
+                        await updateLocationInfo();
+                        // Only refresh notes if on main notes view and not searching
+                        if (currentView === 'notes' && !isSearchActive) {
+                            await refreshNotes();
+                        }
+                    }
+                },
+                (error) => {
+                    console.error('Watch position error:', error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        // Also refresh every 30 seconds for time-based scheduled notes
         setInterval(async () => {
-            await getCurrentLocation().catch(() => {}); // Update location silently
-            if (!isSearchActive) {
-                await refreshNotes();
+            const now = Date.now();
+            if ((now - lastUpdateTime) >= 30000) {
+                lastUpdateTime = now;
+                // Only refresh if on main notes view and not searching
+                if (currentView === 'notes' && !isSearchActive) {
+                    console.log('Periodic refresh for time-based notes');
+                    await refreshNotes();
+                }
             }
-        }, 60000);
+        }, 30000);
 
     } catch (error) {
         console.error('Initialization error:', error);
