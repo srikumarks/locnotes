@@ -635,31 +635,72 @@ async function searchNotes(query) {
     const allNotes = await getAllNotes();
     const lowerQuery = query.toLowerCase();
 
-    // Check if it's a hashtag search
-    const isHashtagSearch = query.startsWith('#');
-    let results;
+    // Parse query for negative hashtags (-#tag) and positive hashtags (#tag)
+    const negativeHashtagPattern = /-#([a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*)/g;
+    const positiveHashtagPattern = /(?<!-)#([a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*)/g;
 
-    if (isHashtagSearch) {
-        const hashtag = query.substring(1).toLowerCase();
-        results = allNotes.filter(note =>
-            note.hashtags && note.hashtags.some(tag => tag.includes(hashtag))
-        );
-    } else {
-        // Full-text search
-        results = allNotes.filter(note => {
+    const negativeHashtags = [];
+    const positiveHashtags = [];
+    let match;
+
+    // Extract negative hashtags
+    while ((match = negativeHashtagPattern.exec(lowerQuery)) !== null) {
+        negativeHashtags.push(match[1].toLowerCase());
+    }
+
+    // Extract positive hashtags
+    const queryWithoutNegative = lowerQuery.replace(negativeHashtagPattern, '');
+    while ((match = positiveHashtagPattern.exec(queryWithoutNegative)) !== null) {
+        positiveHashtags.push(match[1].toLowerCase());
+    }
+
+    // Get remaining text query (without any hashtag patterns)
+    const textQuery = lowerQuery
+        .replace(negativeHashtagPattern, '')
+        .replace(positiveHashtagPattern, '')
+        .trim();
+
+    // Filter notes
+    let results = allNotes.filter(note => {
+        // First, exclude notes with negative hashtags
+        if (negativeHashtags.length > 0) {
+            const noteHasTags = note.hashtags || [];
+            const hasExcludedTag = negativeHashtags.some(excludeTag =>
+                noteHasTags.some(noteTag => noteTag.toLowerCase() === excludeTag)
+            );
+            if (hasExcludedTag) {
+                return false; // Exclude this note
+            }
+        }
+
+        // Then check if note matches positive criteria
+        let matchesPositive = true;
+
+        // Check positive hashtags (all must match)
+        if (positiveHashtags.length > 0) {
+            const noteHasTags = note.hashtags || [];
+            matchesPositive = positiveHashtags.every(requiredTag =>
+                noteHasTags.some(noteTag => noteTag.toLowerCase().includes(requiredTag))
+            );
+        }
+
+        // Check text query if present
+        if (textQuery && matchesPositive) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = note.content;
             const textContent = (tempDiv.textContent || tempDiv.innerText).toLowerCase();
 
-            const matchesContent = textContent.includes(lowerQuery);
+            const matchesContent = textContent.includes(textQuery);
             const matchesNickname = note.locationNickname &&
-                note.locationNickname.toLowerCase().includes(lowerQuery);
+                note.locationNickname.toLowerCase().includes(textQuery);
             const matchesTags = note.hashtags &&
-                note.hashtags.some(tag => tag.includes(lowerQuery));
+                note.hashtags.some(tag => tag.includes(textQuery));
 
-            return matchesContent || matchesNickname || matchesTags;
-        });
-    }
+            matchesPositive = matchesContent || matchesNickname || matchesTags;
+        }
+
+        return matchesPositive;
+    });
 
     // Display results
     displaySearchResults(results, query);
@@ -692,12 +733,28 @@ function displaySearchResults(notes, query) {
 async function showHashtagAutocomplete(input) {
     const dropdown = document.getElementById('autocompleteDropdown');
 
-    if (!input.startsWith('#')) {
+    // Check for negative hashtag (-#) or positive hashtag (#)
+    const isNegative = input.includes('-#');
+    const isPositive = input.includes('#') && !isNegative;
+
+    if (!isNegative && !isPositive) {
         dropdown.classList.remove('active');
         return;
     }
 
-    const query = input.substring(1).toLowerCase();
+    // Extract the hashtag part after -# or #
+    let query;
+    let prefix;
+    if (isNegative) {
+        const negIndex = input.lastIndexOf('-#');
+        query = input.substring(negIndex + 2).toLowerCase();
+        prefix = '-#';
+    } else {
+        const hashIndex = input.lastIndexOf('#');
+        query = input.substring(hashIndex + 1).toLowerCase();
+        prefix = '#';
+    }
+
     if (!query) {
         dropdown.classList.remove('active');
         return;
@@ -715,11 +772,16 @@ async function showHashtagAutocomplete(input) {
     matches.slice(0, 10).forEach(tag => {
         const item = document.createElement('div');
         item.className = 'autocomplete-item';
-        item.textContent = '#' + tag;
+        const displayText = prefix + tag;
+        item.textContent = displayText;
         item.addEventListener('click', () => {
-            document.getElementById('searchBox').value = '#' + tag;
+            // Get the part of input before the hashtag and append the selected tag
+            const beforeHash = isNegative ?
+                input.substring(0, input.lastIndexOf('-#')) :
+                input.substring(0, input.lastIndexOf('#'));
+            document.getElementById('searchBox').value = beforeHash + displayText;
             dropdown.classList.remove('active');
-            searchNotes('#' + tag);
+            searchNotes(beforeHash + displayText);
         });
         dropdown.appendChild(item);
     });
