@@ -1159,7 +1159,9 @@ function setupEventListeners() {
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', () => {
             const viewName = item.dataset.view;
-            showView(viewName);
+            if (viewName) {
+                showView(viewName);
+            }
         });
     });
 
