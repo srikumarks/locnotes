@@ -5,27 +5,213 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>LocNotes - Location-Based Notes</title>
 
-    <!-- PicoCSS -->
-    <link rel="stylesheet" href="pico.min.css">
-
     <!-- Quill CSS -->
     <link href="quill.snow.css" rel="stylesheet">
 
     <style>
+        /* ===== CSS VARIABLES ===== */
         :root {
             --bottom-nav-height: 60px;
             --top-header-height: 50px;
+
+            /* Light mode colors */
+            --bg-color: #ffffff;
+            --card-bg: #f8f9fa;
+            --section-bg: #e9ecef;
+            --text-color: #212529;
+            --text-muted: #6c757d;
+            --border-color: #dee2e6;
+            --primary-color: #0066cc;
+            --primary-hover: #0052a3;
+            --radius: 0.375rem;
+            --input-bg: #ffffff;
+            --input-border: #ced4da;
         }
 
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --card-bg: #2d2d2d;
+                --section-bg: #404040;
+                --text-color: #f8f9fa;
+                --text-muted: #adb5bd;
+                --border-color: #495057;
+                --primary-color: #4dabf7;
+                --primary-hover: #74c0fc;
+                --input-bg: #2d2d2d;
+                --input-border: #495057;
+            }
+        }
+
+        /* ===== BASE RESET ===== */
         * {
             box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            -webkit-text-size-adjust: 100%;
         }
 
         body {
             margin: 0;
             padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: var(--text-color);
+            background-color: var(--bg-color);
             overflow-x: hidden;
         }
+
+        /* ===== TYPOGRAPHY ===== */
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            line-height: 1.2;
+            color: var(--text-color);
+        }
+
+        h1 { font-size: 2rem; }
+        h2 { font-size: 1.75rem; }
+        h3 { font-size: 1.5rem; }
+        h4 { font-size: 1.25rem; }
+        h5 { font-size: 1rem; }
+        h6 { font-size: 0.875rem; }
+
+        p {
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            background: var(--section-bg);
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+        }
+
+        /* ===== BUTTONS ===== */
+        button {
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.5;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background: transparent;
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+
+        button.secondary:hover {
+            background: var(--section-bg);
+            border-color: var(--border-color);
+        }
+
+        .btn-block {
+            width: 100%;
+            display: block;
+        }
+
+        /* ===== FORM ELEMENTS ===== */
+        input[type="text"],
+        input[type="search"],
+        input[type="datetime-local"],
+        textarea {
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.5;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--input-border);
+            border-radius: var(--radius);
+            background: var(--input-bg);
+            color: var(--text-color);
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="search"]:focus,
+        input[type="datetime-local"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
+        }
+
+        input[type="checkbox"] {
+            width: 1.25rem;
+            height: 1.25rem;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        label input[type="checkbox"] {
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+
+        /* ===== LISTS ===== */
+        ul, ol {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        ul {
+            list-style-type: disc;
+        }
+
+        li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* ===== UTILITY CLASSES ===== */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ===== LAYOUT ===== */
 
         main.container {
             padding: 0;
@@ -41,8 +227,8 @@
             position: sticky;
             top: 0;
             z-index: 500;
-            background: var(--pico-background-color);
-            border-bottom: 1px solid var(--pico-muted-border-color);
+            background: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
             padding: 0.5rem 1rem;
             min-height: var(--top-header-height);
         }
@@ -62,7 +248,7 @@
             cursor: pointer;
             padding: 0;
             margin: 0;
-            color: var(--pico-primary);
+            color: var(--primary-color);
             display: none;
         }
 
@@ -81,7 +267,7 @@
             cursor: pointer;
             padding: 0.25rem;
             margin: 0;
-            color: var(--pico-primary);
+            color: var(--primary-color);
             min-width: auto;
             min-height: auto;
         }
@@ -115,8 +301,8 @@
             left: 0;
             right: 0;
             height: var(--bottom-nav-height);
-            background: var(--pico-background-color);
-            border-top: 1px solid var(--pico-muted-border-color);
+            background: var(--bg-color);
+            border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: space-around;
             align-items: center;
@@ -133,18 +319,18 @@
             background: none;
             border: none;
             cursor: pointer;
-            color: var(--pico-muted-color);
+            color: var(--text-muted);
             text-decoration: none;
             font-size: 0.75rem;
             transition: color 0.2s;
         }
 
         .nav-item.active {
-            color: var(--pico-primary);
+            color: var(--primary-color);
         }
 
         .nav-item:hover {
-            color: var(--pico-primary);
+            color: var(--primary-color);
         }
 
         .nav-icon {
@@ -156,14 +342,14 @@
         .note-card {
             margin-bottom: 1rem;
             padding: 1rem;
-            border: 1px solid var(--pico-muted-border-color);
-            border-radius: var(--pico-border-radius);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
             cursor: pointer;
             transition: background-color 0.2s;
         }
 
         .note-card:hover {
-            background-color: var(--pico-card-sectioning-background-color);
+            background-color: var(--section-bg);
         }
 
         .note-header {
@@ -175,12 +361,12 @@
 
         .note-id {
             font-weight: bold;
-            color: var(--pico-primary);
+            color: var(--primary-color);
         }
 
         .note-meta {
             font-size: 0.85rem;
-            color: var(--pico-muted-color);
+            color: var(--text-muted);
             margin-bottom: 0.5rem;
         }
 
@@ -201,25 +387,25 @@
             left: 0;
             right: 0;
             height: 30px;
-            background: linear-gradient(transparent, var(--pico-background-color));
+            background: linear-gradient(transparent, var(--bg-color));
         }
 
         .note-reference, .hashtag {
-            color: var(--pico-primary);
+            color: var(--primary-color);
             text-decoration: underline;
             cursor: pointer;
         }
 
         .sticky-note {
-            border: 2px solid var(--pico-primary);
-            background: var(--pico-card-background-color);
+            border: 2px solid var(--primary-color);
+            background: var(--card-bg);
         }
 
         /* Location Info */
         .location-info {
             padding: 0.75rem;
-            background: var(--pico-card-background-color);
-            border-radius: var(--pico-border-radius);
+            background: var(--card-bg);
+            border-radius: var(--radius);
             margin-bottom: 1rem;
             font-size: 0.9rem;
         }
@@ -232,7 +418,7 @@
         .location-details {
             margin-top: 0.5rem;
             font-size: 0.75rem;
-            color: var(--pico-muted-color);
+            color: var(--text-muted);
         }
 
         /* Search */
@@ -250,9 +436,9 @@
             top: 100%;
             left: 0;
             right: 0;
-            background: var(--pico-card-background-color);
-            border: 1px solid var(--pico-muted-border-color);
-            border-radius: var(--pico-border-radius);
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
             max-height: 200px;
             overflow-y: auto;
             z-index: 1000;
@@ -266,11 +452,11 @@
         .autocomplete-item {
             padding: 0.75rem;
             cursor: pointer;
-            border-bottom: 1px solid var(--pico-muted-border-color);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .autocomplete-item:hover {
-            background: var(--pico-primary-hover);
+            background: var(--primary-hover);
         }
 
         .autocomplete-item:last-child {
@@ -279,7 +465,7 @@
 
         /* Editor */
         .editor-container {
-            background: var(--pico-background-color);
+            background: var(--bg-color);
             margin-bottom: 1rem;
         }
 
@@ -290,7 +476,7 @@
         /* Tags */
         .tag-badge {
             display: inline-block;
-            background: var(--pico-primary);
+            background: var(--primary-color);
             color: white;
             padding: 0.25rem 0.5rem;
             border-radius: 0.25rem;
@@ -313,8 +499,8 @@
         .location-item {
             margin-bottom: 1rem;
             padding: 1rem;
-            border: 1px solid var(--pico-muted-border-color);
-            border-radius: var(--pico-border-radius);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
         }
 
         .location-item h3 {
@@ -356,12 +542,40 @@
             margin-bottom: 1rem;
             font-weight: bold;
             padding: 0.5rem;
-            background: var(--pico-card-background-color);
-            border-radius: var(--pico-border-radius);
+            background: var(--card-bg);
+            border-radius: var(--radius);
+        }
+
+        /* Tablet Styles */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            main.container {
+                max-width: 700px;
+                margin: 0 auto;
+            }
+
+            .bottom-nav {
+                display: none;
+            }
+
+            .main-content {
+                padding-bottom: 1rem;
+            }
+
+            .desktop-actions {
+                display: flex !important;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .note-card {
+                padding: 1rem;
+            }
         }
 
         /* Desktop Styles */
-        @media (min-width: 768px) {
+        @media (min-width: 1024px) {
             main.container {
                 max-width: 900px;
                 margin: 0 auto;
@@ -377,6 +591,10 @@
 
             .desktop-actions {
                 display: flex !important;
+            }
+
+            .note-card {
+                padding: 1.25rem;
             }
         }
 
@@ -445,9 +663,9 @@
 
         /* Create Note Form (inline) */
         .create-note-form {
-            background: var(--pico-card-background-color);
-            border: 1px solid var(--pico-muted-border-color);
-            border-radius: var(--pico-border-radius);
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
             padding: 1rem;
             margin-bottom: 1rem;
         }
@@ -661,7 +879,7 @@
                 </div>
 
                 <h3>Important Caveats</h3>
-                <div class="location-info" style="background: var(--pico-card-sectioning-background-color); border-left: 3px solid var(--pico-primary);">
+                <div class="location-info" style="background: var(--section-bg); border-left: 3px solid var(--primary-color);">
                     <p><strong>⚠️ Private/Incognito Mode Warning</strong></p>
                     <p>If you use LocNotes in a <strong>private or incognito browser window</strong>, all your notes will be <strong>permanently deleted</strong> when you close the window.</p>
                     <p><strong>Data Storage:</strong> Your notes are stored in your browser's IndexedDB. They persist across normal browsing sessions but will be lost if you:</p>
