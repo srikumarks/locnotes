@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LocNotes - Location-Based Notes</title>
+
+    <!-- PicoCSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+
+    <!-- Quill CSS -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --bottom-nav-height: 60px;
+            --top-header-height: 50px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        main.container {
+            padding: 0;
+            margin: 0;
+            max-width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Header */
+        .top-header {
+            position: sticky;
+            top: 0;
+            z-index: 500;
+            background: var(--pico-background-color);
+            border-bottom: 1px solid var(--pico-muted-border-color);
+            padding: 0.5rem 1rem;
+            min-height: var(--top-header-height);
+        }
+
+        .top-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            margin: 0;
+            color: var(--pico-primary);
+            display: none;
+        }
+
+        .back-button.visible {
+            display: inline-block;
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .help-button {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            margin: 0;
+            color: var(--pico-primary);
+            min-width: auto;
+            min-height: auto;
+        }
+
+        .help-button:hover {
+            opacity: 0.8;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-bottom: calc(var(--bottom-nav-height) + 1rem);
+        }
+
+        /* Views */
+        .view {
+            display: none;
+            padding: 1rem;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: var(--bottom-nav-height);
+            background: var(--pico-background-color);
+            border-top: 1px solid var(--pico-muted-border-color);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 500;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--pico-muted-color);
+            text-decoration: none;
+            font-size: 0.75rem;
+            transition: color 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--pico-primary);
+        }
+
+        .nav-item:hover {
+            color: var(--pico-primary);
+        }
+
+        .nav-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Note Cards */
+        .note-card {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--pico-muted-border-color);
+            border-radius: var(--pico-border-radius);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .note-card:hover {
+            background-color: var(--pico-card-sectioning-background-color);
+        }
+
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .note-id {
+            font-weight: bold;
+            color: var(--pico-primary);
+        }
+
+        .note-meta {
+            font-size: 0.85rem;
+            color: var(--pico-muted-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .note-content {
+            margin-top: 0.5rem;
+        }
+
+        .note-content-preview {
+            max-height: 100px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .note-content-preview::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(transparent, var(--pico-background-color));
+        }
+
+        .note-reference, .hashtag {
+            color: var(--pico-primary);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .sticky-note {
+            border: 2px solid var(--pico-primary);
+            background: var(--pico-card-background-color);
+        }
+
+        /* Location Info */
+        .location-info {
+            padding: 0.75rem;
+            background: var(--pico-card-background-color);
+            border-radius: var(--pico-border-radius);
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .location-info-compact {
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .location-details {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--pico-muted-color);
+        }
+
+        /* Search */
+        .search-container {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .search-box {
+            width: 100%;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--pico-card-background-color);
+            border: 1px solid var(--pico-muted-border-color);
+            border-radius: var(--pico-border-radius);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .autocomplete-dropdown.active {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 0.75rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--pico-muted-border-color);
+        }
+
+        .autocomplete-item:hover {
+            background: var(--pico-primary-hover);
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Editor */
+        .editor-container {
+            background: var(--pico-background-color);
+            margin-bottom: 1rem;
+        }
+
+        #editor {
+            min-height: 200px;
+        }
+
+        /* Tags */
+        .tag-badge {
+            display: inline-block;
+            background: var(--pico-primary);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            margin-right: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .tag-input-container {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .tag-input-container input {
+            flex: 1;
+        }
+
+        /* Location Management */
+        .location-item {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--pico-muted-border-color);
+            border-radius: var(--pico-border-radius);
+        }
+
+        .location-item h3 {
+            margin: 0 0 0.5rem 0;
+        }
+
+        .location-tags {
+            margin-top: 0.5rem;
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .button-group button {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-block {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Utility */
+        .hidden {
+            display: none;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .search-results-header {
+            margin-bottom: 1rem;
+            font-weight: bold;
+            padding: 0.5rem;
+            background: var(--pico-card-background-color);
+            border-radius: var(--pico-border-radius);
+        }
+
+        /* Desktop Styles */
+        @media (min-width: 768px) {
+            main.container {
+                max-width: 900px;
+                margin: 0 auto;
+            }
+
+            .bottom-nav {
+                display: none;
+            }
+
+            .main-content {
+                padding-bottom: 1rem;
+            }
+
+            .desktop-actions {
+                display: flex !important;
+            }
+        }
+
+        /* Icon Buttons */
+        .icon {
+            display: inline-block;
+            margin-right: 0.25rem;
+        }
+
+        .button-text {
+            display: inline;
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 767px) {
+            .desktop-actions {
+                display: none;
+            }
+
+            .note-card {
+                margin-left: -0.5rem;
+                margin-right: -0.5rem;
+            }
+
+            h1 {
+                font-size: 1.25rem;
+            }
+
+            .button-group button {
+                min-width: 100px;
+                font-size: 0.9rem;
+            }
+
+            /* Mobile: Hide button text visually but keep for screen readers */
+            .button-text {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                padding: 0;
+                margin: -1px;
+                overflow: hidden;
+                clip: rect(0, 0, 0, 0);
+                white-space: nowrap;
+                border-width: 0;
+            }
+
+            .icon {
+                margin-right: 0;
+            }
+
+            /* Keep larger touch targets */
+            button {
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            .btn-block {
+                min-width: 100%;
+            }
+        }
+
+        /* Full height editor for create view */
+        .create-note-view .editor-container {
+            min-height: 40vh;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <!-- Top Header -->
+        <div class="top-header">
+            <h1>
+                <button class="back-button" id="backButton" aria-label="Go back">←</button>
+                <span class="header-title" id="headerTitle">LocNotes</span>
+                <button class="help-button" id="helpButton" aria-label="Help">
+                    <span class="icon">❓</span>
+                </button>
+            </h1>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- NOTES VIEW (Default) -->
+            <div id="notesView" class="view active">
+                <!-- Location Info -->
+                <div id="locationInfo" class="location-info">
+                    <div id="locationStatus">Requesting location permission...</div>
+                    <div id="locationDetails" class="location-details"></div>
+                </div>
+
+                <!-- Desktop Actions -->
+                <div class="button-group desktop-actions">
+                    <button id="newNoteBtnDesktop">
+                        <span class="icon">➕</span>
+                        <span class="button-text">New Note</span>
+                    </button>
+                    <button id="manageLocationsBtnDesktop" class="secondary">
+                        <span class="icon">📍</span>
+                        <span class="button-text">Locations</span>
+                    </button>
+                    <button id="exportBtnDesktop" class="secondary">
+                        <span class="icon">📤</span>
+                        <span class="button-text">Export</span>
+                    </button>
+                    <button id="importBtnDesktop" class="secondary">
+                        <span class="icon">📥</span>
+                        <span class="button-text">Import</span>
+                    </button>
+                </div>
+
+                <!-- Search Box -->
+                <div class="search-container">
+                    <input type="search" id="searchBox" class="search-box" placeholder="Search notes... (type # for hashtags)">
+                    <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+                </div>
+
+                <!-- Search Results Header -->
+                <div id="searchResultsHeader" class="search-results-header hidden"></div>
+
+                <!-- Sticky/Scheduled Notes -->
+                <div id="stickyNotes"></div>
+
+                <!-- Notes List -->
+                <div id="notesList"></div>
+            </div>
+
+            <!-- CREATE NOTE VIEW -->
+            <div id="createNoteView" class="view create-note-view">
+                <h2>Create New Note</h2>
+
+                <label>
+                    <input type="checkbox" id="attachToLocation" checked>
+                    Attach to current location
+                </label>
+
+                <label for="locationNickname">
+                    Location Nickname (optional)
+                    <input type="text" id="locationNickname" placeholder="e.g., Home, Office">
+                </label>
+
+                <label>
+                    <input type="checkbox" id="scheduleNote">
+                    Schedule for specific date/time
+                </label>
+
+                <div id="scheduleOptions" class="hidden">
+                    <label for="scheduledDateTime">
+                        Date & Time
+                        <input type="datetime-local" id="scheduledDateTime">
+                    </label>
+                </div>
+
+                <label>
+                    Note Content
+                    <div id="editor" class="editor-container"></div>
+                </label>
+
+                <button id="saveNoteBtn" class="btn-block">
+                    <span class="icon">💾</span>
+                    <span class="button-text">Save Note</span>
+                </button>
+                <button id="cancelNoteBtn" class="btn-block secondary">
+                    <span class="icon">✕</span>
+                    <span class="button-text">Cancel</span>
+                </button>
+            </div>
+
+            <!-- NOTE DETAIL VIEW -->
+            <div id="noteDetailView" class="view">
+                <div id="noteDetailContent"></div>
+            </div>
+
+            <!-- LOCATIONS VIEW -->
+            <div id="locationsView" class="view">
+                <h2>Manage Locations</h2>
+                <div id="locationsList"></div>
+
+                <div id="locationTagging" class="hidden location-item">
+                    <h3>Attach Hashtags</h3>
+                    <p id="selectedLocationName"></p>
+                    <div class="location-tags" id="currentLocationTags"></div>
+                    <div class="tag-input-container">
+                        <input type="text" id="tagInput" placeholder="Enter hashtag (e.g., work, meeting)">
+                        <button id="addTagBtn">
+                            <span class="icon">➕</span>
+                            <span class="button-text">Add</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HASHTAG FILTER VIEW -->
+            <div id="hashtagFilterView" class="view">
+                <h2 id="hashtagFilterTitle">Notes tagged with #hashtag</h2>
+                <div id="hashtagFilteredNotes"></div>
+            </div>
+
+            <!-- SETTINGS VIEW -->
+            <div id="settingsView" class="view">
+                <h2>Settings</h2>
+
+                <h3>Data Management</h3>
+                <button id="exportBtn" class="btn-block">
+                    <span class="icon">📤</span>
+                    <span class="button-text">Export Data</span>
+                </button>
+                <button id="importBtn" class="btn-block secondary">
+                    <span class="icon">📥</span>
+                    <span class="button-text">Import Data</span>
+                </button>
+
+                <div class="location-info" style="margin-top: 2rem;">
+                    <h3>About LocNotes</h3>
+                    <p><strong>Version:</strong> 2.0</p>
+                    <p><strong>Storage:</strong> IndexedDB (Browser Local Storage)</p>
+                    <p><strong>Privacy:</strong> All data stays on your device</p>
+                </div>
+            </div>
+
+            <!-- HELP VIEW -->
+            <div id="helpView" class="view">
+                <h2>Help & Information</h2>
+
+                <h3>What is LocNotes?</h3>
+                <p>LocNotes is a location-based note-taking app that helps you create and recall notes based on where you are and when you need them.</p>
+
+                <h3>Key Features</h3>
+                <ul>
+                    <li><strong>📍 Location-Based:</strong> Notes automatically appear when you're within 10 meters of where they were created</li>
+                    <li><strong>⏰ Time-Scheduled:</strong> Set notes to appear at specific dates and times (5-minute resolution)</li>
+                    <li><strong>🏷️ Hashtags:</strong> Tag notes with #hashtags for easy organization</li>
+                    <li><strong>🔗 Note References:</strong> Link notes together using #123 syntax</li>
+                    <li><strong>🎯 Smart Sorting:</strong> Notes are ordered by location-time proximity</li>
+                </ul>
+
+                <h3>How to Use</h3>
+                <ol>
+                    <li><strong>Create a Note:</strong> Tap the ➕ button, write your note, and save</li>
+                    <li><strong>Location Nicknames:</strong> Give places friendly names like "Home" or "Office"</li>
+                    <li><strong>Tag Locations:</strong> Attach hashtags to locations to auto-show tagged notes when you're there</li>
+                    <li><strong>Search:</strong> Use the search box to find notes by content or hashtags</li>
+                    <li><strong>Export/Import:</strong> Backup your data as JSON from Settings</li>
+                </ol>
+
+                <h3>Privacy & Data</h3>
+                <div class="location-info">
+                    <p><strong>🔒 No Backend, No Tracking</strong></p>
+                    <p>LocNotes runs <strong>entirely in your browser</strong>. There is no server backend, which means:</p>
+                    <ul>
+                        <li>✓ Your notes <strong>never leave your device</strong></li>
+                        <li>✓ No user data is collected or transmitted</li>
+                        <li>✓ No analytics, cookies, or tracking</li>
+                        <li>✓ Complete privacy - only you can see your notes</li>
+                    </ul>
+                </div>
+
+                <h3>Important Caveats</h3>
+                <div class="location-info" style="background: var(--pico-card-sectioning-background-color); border-left: 3px solid var(--pico-primary);">
+                    <p><strong>⚠️ Private/Incognito Mode Warning</strong></p>
+                    <p>If you use LocNotes in a <strong>private or incognito browser window</strong>, all your notes will be <strong>permanently deleted</strong> when you close the window.</p>
+                    <p><strong>Data Storage:</strong> Your notes are stored in your browser's IndexedDB. They persist across normal browsing sessions but will be lost if you:</p>
+                    <ul>
+                        <li>Use private/incognito mode</li>
+                        <li>Clear browser data</li>
+                        <li>Uninstall the browser</li>
+                        <li>Use a different browser or device</li>
+                    </ul>
+                    <p><strong>Recommendation:</strong> Regularly export your data (Settings → Export Data) to create backups!</p>
+                </div>
+
+                <h3>Location Permissions</h3>
+                <p>LocNotes requires location access to function. Your location data:</p>
+                <ul>
+                    <li>Is only stored locally in your browser</li>
+                    <li>Is never sent to any server</li>
+                    <li>Is used only to match notes to your current position</li>
+                </ul>
+
+                <h3>Tips</h3>
+                <ul>
+                    <li>Use hashtags like <code>#work</code> <code>#meeting</code> to organize notes</li>
+                    <li>Attach hashtags to locations for automatic filtering</li>
+                    <li>Reference other notes with <code>#123</code> (note ID numbers)</li>
+                    <li>Export your data regularly as a backup</li>
+                    <li>Notes are sorted by relevance - most important appear first</li>
+                </ul>
+
+                <h3>Need More Help?</h3>
+                <p>Check the README.md file in the project repository for detailed documentation.</p>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation (Mobile Only) -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-view="notes">
+                <div class="nav-icon">📝</div>
+                <div>Notes</div>
+            </button>
+            <button class="nav-item" data-view="create">
+                <div class="nav-icon">➕</div>
+                <div>New</div>
+            </button>
+            <button class="nav-item" data-view="locations">
+                <div class="nav-icon">📍</div>
+                <div>Locations</div>
+            </button>
+            <button class="nav-item" data-view="settings">
+                <div class="nav-icon">⚙️</div>
+                <div>Settings</div>
+            </button>
+        </nav>
+
+        <!-- Hidden Import File Input -->
+        <input type="file" id="importFile" accept=".json" class="hidden">
+    </main>
+
+    <!-- Quill JS -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+    <!-- App JS -->
+    <script src="app.js"></script>
+</body>
+</html>
