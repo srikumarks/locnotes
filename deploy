@@ -1,2 +1,5 @@
 s3cmd -P put -m application/javascript app.js s3://sriku.org/locnotes/app.js
 s3cmd -P put -m text/html index.html s3://sriku.org/locnotes/index.html
+s3cmd -P put -m text/css pico.min.css s3://sriku.org/locnotes/pico.min.css
+s3cmd -P put -m text/css quill.snow.css s3://sriku.org/locnotes/quill.snow.css
+s3cmd -P put -m application/javascript quill.js s3://sriku.org/locnotes/quill.js
