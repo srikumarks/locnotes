@@ -442,6 +442,27 @@
         .create-note-view .editor-container {
             min-height: 40vh;
         }
+
+        /* Create Note Form (inline) */
+        .create-note-form {
+            background: var(--pico-card-background-color);
+            border: 1px solid var(--pico-muted-border-color);
+            border-radius: var(--pico-border-radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .create-note-form.hidden {
+            display: none;
+        }
+
+        .create-note-form h3 {
+            margin-top: 0;
+        }
+
+        .create-note-form .editor-container {
+            min-height: 30vh;
+        }
     </style>
 </head>
 <body>
@@ -487,6 +508,47 @@
                     </button>
                 </div>
 
+                <!-- Create Note Form (Collapsible) -->
+                <div id="createNoteForm" class="create-note-form hidden">
+                    <h3>Create New Note</h3>
+
+                    <label>
+                        <input type="checkbox" id="attachToLocation" checked>
+                        Attach to current location
+                    </label>
+
+                    <label for="locationNickname">
+                        Location Nickname (optional)
+                        <input type="text" id="locationNickname" placeholder="e.g., Home, Office">
+                    </label>
+
+                    <label>
+                        <input type="checkbox" id="scheduleNote">
+                        Schedule for specific date/time
+                    </label>
+
+                    <div id="scheduleOptions" class="hidden">
+                        <label for="scheduledDateTime">
+                            Date & Time
+                            <input type="datetime-local" id="scheduledDateTime">
+                        </label>
+                    </div>
+
+                    <label>
+                        Note Content
+                        <div id="editor" class="editor-container"></div>
+                    </label>
+
+                    <button id="saveNoteBtn" class="btn-block">
+                        <span class="icon">💾</span>
+                        <span class="button-text">Save Note</span>
+                    </button>
+                    <button id="cancelNoteBtn" class="btn-block secondary">
+                        <span class="icon">✕</span>
+                        <span class="button-text">Cancel</span>
+                    </button>
+                </div>
+
                 <!-- Search Box -->
                 <div class="search-container">
                     <input type="search" id="searchBox" class="search-box" placeholder="Search notes... (type # for hashtags)">
@@ -501,47 +563,6 @@
 
                 <!-- Notes List -->
                 <div id="notesList"></div>
-            </div>
-
-            <!-- CREATE NOTE VIEW -->
-            <div id="createNoteView" class="view create-note-view">
-                <h2>Create New Note</h2>
-
-                <label>
-                    <input type="checkbox" id="attachToLocation" checked>
-                    Attach to current location
-                </label>
-
-                <label for="locationNickname">
-                    Location Nickname (optional)
-                    <input type="text" id="locationNickname" placeholder="e.g., Home, Office">
-                </label>
-
-                <label>
-                    <input type="checkbox" id="scheduleNote">
-                    Schedule for specific date/time
-                </label>
-
-                <div id="scheduleOptions" class="hidden">
-                    <label for="scheduledDateTime">
-                        Date & Time
-                        <input type="datetime-local" id="scheduledDateTime">
-                    </label>
-                </div>
-
-                <label>
-                    Note Content
-                    <div id="editor" class="editor-container"></div>
-                </label>
-
-                <button id="saveNoteBtn" class="btn-block">
-                    <span class="icon">💾</span>
-                    <span class="button-text">Save Note</span>
-                </button>
-                <button id="cancelNoteBtn" class="btn-block secondary">
-                    <span class="icon">✕</span>
-                    <span class="button-text">Cancel</span>
-                </button>
             </div>
 
             <!-- NOTE DETAIL VIEW -->
@@ -675,7 +696,7 @@
                 <div class="nav-icon">📝</div>
                 <div>Notes</div>
             </button>
-            <button class="nav-item" data-view="create">
+            <button class="nav-item" id="newNoteBtnMobile">
                 <div class="nav-icon">➕</div>
                 <div>New</div>
             </button>

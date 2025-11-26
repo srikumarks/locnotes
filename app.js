@@ -1117,6 +1117,32 @@ function initQuillEditor() {
 
 // ===== UI INTERACTIONS =====
 
+// Toggle create note form visibility
+function toggleCreateNoteForm() {
+    const form = document.getElementById('createNoteForm');
+    if (form.classList.contains('hidden')) {
+        form.classList.remove('hidden');
+        // Scroll to the form
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Focus on the editor
+        setTimeout(() => quill.focus(), 300);
+    } else {
+        hideCreateNoteForm();
+    }
+}
+
+// Hide create note form and reset it
+function hideCreateNoteForm() {
+    const form = document.getElementById('createNoteForm');
+    form.classList.add('hidden');
+    // Clear form
+    quill.setContents([]);
+    document.getElementById('locationNickname').value = '';
+    document.getElementById('scheduleNote').checked = false;
+    document.getElementById('scheduleOptions').classList.add('hidden');
+    document.getElementById('scheduledDateTime').value = '';
+}
+
 function setupEventListeners() {
     // Back button
     document.getElementById('backButton').addEventListener('click', () => {
@@ -1140,7 +1166,15 @@ function setupEventListeners() {
     const newNoteBtnDesktop = document.getElementById('newNoteBtnDesktop');
     if (newNoteBtnDesktop) {
         newNoteBtnDesktop.addEventListener('click', () => {
-            showView('create');
+            toggleCreateNoteForm();
+        });
+    }
+
+    // Mobile new note button
+    const newNoteBtnMobile = document.getElementById('newNoteBtnMobile');
+    if (newNoteBtnMobile) {
+        newNoteBtnMobile.addEventListener('click', () => {
+            toggleCreateNoteForm();
         });
     }
 
@@ -1167,11 +1201,7 @@ function setupEventListeners() {
 
     // Cancel Note button
     document.getElementById('cancelNoteBtn').addEventListener('click', () => {
-        quill.setContents([]);
-        document.getElementById('locationNickname').value = '';
-        document.getElementById('scheduleNote').checked = false;
-        document.getElementById('scheduleOptions').classList.add('hidden');
-        showView('notes');
+        hideCreateNoteForm();
     });
 
     // Schedule checkbox
@@ -1333,17 +1363,12 @@ async function saveNote() {
 
     await addNote(note);
 
-    // Clear form
-    quill.setContents([]);
-    document.getElementById('locationNickname').value = '';
-    document.getElementById('scheduleNote').checked = false;
-    document.getElementById('scheduleOptions').classList.add('hidden');
-    document.getElementById('scheduledDateTime').value = '';
+    // Hide the form and clear it
+    hideCreateNoteForm();
 
-    // Refresh and go back to notes view
+    // Refresh notes list
     await refreshNotes();
     await updateLocationInfo();
-    showView('notes');
 
     alert('Note saved successfully!');
 }
