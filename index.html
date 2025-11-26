@@ -738,12 +738,16 @@
 
                     <label>
                         <input type="checkbox" id="attachToLocation" checked>
-                        Attach to current location
+                        Attach to location
                     </label>
 
                     <label for="locationNickname">
-                        Location Nickname (optional)
-                        <input type="text" id="locationNickname" placeholder="e.g., Home, Office">
+                        Location Nickname
+                        <input type="text" id="locationNickname" list="savedLocations" placeholder="Type to search saved locations or create new">
+                        <datalist id="savedLocations"></datalist>
+                        <small style="display: block; color: var(--text-muted); margin-top: 0.25rem;">
+                            Select existing or type new. Leave blank to use current GPS position.
+                        </small>
                     </label>
 
                     <label>

@@ -333,15 +333,10 @@ async function getLocationById(id) {
 
 // Find location by nickname
 async function getLocationByNickname(nickname) {
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(['locations'], 'readonly');
-        const store = transaction.objectStore('locations');
-        const index = store.index('nickname');
-        const request = index.get(nickname);
-
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
+    // Case-insensitive search for location by nickname
+    const allLocations = await getAllLocations();
+    const lowerNickname = nickname.toLowerCase();
+    return allLocations.find(loc => loc.nickname.toLowerCase() === lowerNickname) || null;
 }
 
 // Add dismissal
@@ -1256,8 +1251,22 @@ function initQuillEditor() {
 // Track if we're editing an existing note
 let editingNoteId = null;
 
+// Populate saved locations datalist
+async function populateSavedLocations() {
+    const datalist = document.getElementById('savedLocations');
+    const locations = await getAllLocations();
+
+    datalist.innerHTML = '';
+    locations.forEach(loc => {
+        const option = document.createElement('option');
+        option.value = loc.nickname;
+        option.textContent = `${loc.nickname} (${loc.hashtags && loc.hashtags.length > 0 ? loc.hashtags.map(t => '#' + t).join(' ') : 'no tags'})`;
+        datalist.appendChild(option);
+    });
+}
+
 // Edit an existing note
-function editNote(note) {
+async function editNote(note) {
     editingNoteId = note.id;
 
     // Switch to notes view if not already there
@@ -1268,6 +1277,9 @@ function editNote(note) {
     // Show and populate the form
     const form = document.getElementById('createNoteForm');
     form.classList.remove('hidden');
+
+    // Populate saved locations dropdown
+    await populateSavedLocations();
 
     // Populate form fields
     document.getElementById('attachToLocation').checked = !!note.locationId;
@@ -1300,7 +1312,7 @@ function editNote(note) {
 }
 
 // Toggle create note form visibility
-function toggleCreateNoteForm() {
+async function toggleCreateNoteForm() {
     const form = document.getElementById('createNoteForm');
     if (form.classList.contains('hidden')) {
         // Reset editing state when opening for new note
@@ -1309,6 +1321,9 @@ function toggleCreateNoteForm() {
         if (formHeading) {
             formHeading.textContent = 'Create New Note';
         }
+
+        // Populate saved locations dropdown
+        await populateSavedLocations();
 
         form.classList.remove('hidden');
         // Scroll to the top of the main content area to show the form
@@ -1504,17 +1519,21 @@ async function saveNote() {
 
     // Handle location attachment
     if (attachToLocation) {
-        if (!currentPosition) {
-            alert('Current location is not available');
-            return;
-        }
-
         // Check if we need to create or update a location
         if (locationNickname) {
+            // Try to find existing location (case-insensitive)
             let location = await getLocationByNickname(locationNickname);
 
-            if (!location) {
-                // Create new location
+            if (location) {
+                // Use existing location - no GPS needed
+                locationId = location.id;
+                finalLocationNickname = location.nickname; // Use exact case from saved location
+            } else {
+                // Creating new location - GPS required
+                if (!currentPosition) {
+                    alert('GPS location required to create a new location. Please enable location services or select an existing location.');
+                    return;
+                }
                 locationId = await addLocation({
                     nickname: locationNickname,
                     latitude: currentPosition.latitude,
@@ -1522,11 +1541,15 @@ async function saveNote() {
                     createdAt: new Date().toISOString(),
                     hashtags: []
                 });
-            } else {
-                locationId = location.id;
+                finalLocationNickname = locationNickname;
             }
-            finalLocationNickname = locationNickname;
         } else {
+            // No nickname provided - use current GPS position
+            if (!currentPosition) {
+                alert('GPS location required. Please enable location services or provide a location nickname.');
+                return;
+            }
+
             // Find matching location or create unnamed one
             const matchingLocation = await findMatchingLocation();
             if (matchingLocation) {
