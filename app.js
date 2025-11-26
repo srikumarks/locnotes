@@ -84,8 +84,8 @@ function showView(viewName, data = null) {
 
     headerTitle.textContent = titles[viewName] || 'LocNotes';
 
-    // Show back button for non-main views
-    if (viewName !== 'notes' && viewName !== 'create' && viewName !== 'locations' && viewName !== 'settings') {
+    // Show back button for non-main views (notes and settings are main nav, others get back button)
+    if (viewName !== 'notes' && viewName !== 'settings') {
         backButton.classList.add('visible');
     } else {
         backButton.classList.remove('visible');
@@ -170,8 +170,8 @@ window.addEventListener('popstate', (event) => {
 
     headerTitle.textContent = titles[targetView] || 'LocNotes';
 
-    // Show back button for non-main views
-    if (targetView !== 'notes' && targetView !== 'create' && targetView !== 'locations' && targetView !== 'settings') {
+    // Show back button for non-main views (notes and settings are main nav, others get back button)
+    if (targetView !== 'notes' && targetView !== 'settings') {
         backButton.classList.add('visible');
     } else {
         backButton.classList.remove('visible');
