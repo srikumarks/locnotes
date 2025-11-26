@@ -1,0 +1,2 @@
+s3cmd -P put -m application/javascript app.js s3://sriku.org/locnotes/app.js
+s3cmd -P put -m text/html index.html s3://sriku.org/locnotes/index.html
