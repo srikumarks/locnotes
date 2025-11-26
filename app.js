@@ -363,10 +363,18 @@ function getCurrentLocation() {
                     longitude: position.coords.longitude,
                     accuracy: position.coords.accuracy
                 };
+                console.log('Location acquired:', currentPosition);
                 resolve(currentPosition);
             },
-            (error) => reject(error),
-            { enableHighAccuracy: true }
+            (error) => {
+                console.error('Geolocation error:', error.code, error.message);
+                reject(error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 30000
+            }
         );
     });
 }
@@ -1396,7 +1404,24 @@ async function init() {
             await getCurrentLocation();
             await updateLocationInfo();
         } catch (error) {
-            document.getElementById('locationStatus').textContent = 'Location permission denied or unavailable';
+            let errorMsg = 'Location unavailable';
+            if (error.code === 1) {
+                errorMsg = 'Location permission denied';
+            } else if (error.code === 2) {
+                errorMsg = 'Location unavailable (position unavailable)';
+            } else if (error.code === 3) {
+                errorMsg = 'Location timeout - retrying...';
+                // Retry once on timeout
+                setTimeout(async () => {
+                    try {
+                        await getCurrentLocation();
+                        await updateLocationInfo();
+                    } catch (retryError) {
+                        console.error('Location retry failed:', retryError);
+                    }
+                }, 2000);
+            }
+            document.getElementById('locationStatus').textContent = errorMsg;
             console.error('Geolocation error:', error);
         }
 
