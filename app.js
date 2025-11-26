@@ -1122,10 +1122,11 @@ function toggleCreateNoteForm() {
     const form = document.getElementById('createNoteForm');
     if (form.classList.contains('hidden')) {
         form.classList.remove('hidden');
-        // Scroll to the form
-        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Scroll to the top of the main content area to show the form
+        const mainContent = document.querySelector('.main-content');
+        mainContent.scrollTop = 0;
         // Focus on the editor
-        setTimeout(() => quill.focus(), 300);
+        setTimeout(() => quill.focus(), 100);
     } else {
         hideCreateNoteForm();
     }
