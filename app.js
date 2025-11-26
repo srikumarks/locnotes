@@ -237,6 +237,40 @@ async function addNote(noteData) {
     });
 }
 
+// Update an existing note
+async function updateNote(noteId, noteData) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['notes'], 'readwrite');
+        const store = transaction.objectStore('notes');
+
+        // Get the existing note first
+        const getRequest = store.get(noteId);
+
+        getRequest.onsuccess = () => {
+            const existingNote = getRequest.result;
+            if (!existingNote) {
+                reject(new Error('Note not found'));
+                return;
+            }
+
+            // Merge with new data, keeping the original ID and createdAt
+            const updatedNote = {
+                ...existingNote,
+                ...noteData,
+                id: noteId,
+                createdAt: existingNote.createdAt,
+                updatedAt: new Date().toISOString()
+            };
+
+            const putRequest = store.put(updatedNote);
+            putRequest.onsuccess = () => resolve(noteId);
+            putRequest.onerror = () => reject(putRequest.error);
+        };
+
+        getRequest.onerror = () => reject(getRequest.error);
+    });
+}
+
 // Get all notes
 async function getAllNotes() {
     return new Promise((resolve, reject) => {
@@ -488,7 +522,7 @@ function renderNote(note, isSticky = false, isDetail = false) {
         </div>
         <div class="note-meta">${metaInfo.join(' • ')}</div>
         <div class="${contentClass}">${content}</div>
-        ${!isDetail ? `<div style="font-size: 0.75rem; color: var(--pico-muted-color); margin-top: 0.5rem;">Created: ${new Date(note.createdAt).toLocaleString()}</div>` : ''}
+        ${!isDetail ? `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Created: ${new Date(note.createdAt).toLocaleString()}</div>` : ''}
     `;
 
     // Add click handler to view note detail (except for sticky notes and already in detail view)
@@ -542,8 +576,19 @@ async function displayNoteDetail(noteId) {
 
     const container = document.getElementById('noteDetailContent');
     const noteElement = renderNote(note, false, true);
+
+    // Add edit button
+    const editButton = document.createElement('button');
+    editButton.className = 'btn-block';
+    editButton.style.marginTop = '1rem';
+    editButton.innerHTML = '<span class="icon">✏️</span><span class="button-text">Edit Note</span>';
+    editButton.addEventListener('click', () => {
+        editNote(note);
+    });
+
     container.innerHTML = '';
     container.appendChild(noteElement);
+    container.appendChild(editButton);
 }
 
 // Display hashtag filter view
@@ -1146,10 +1191,63 @@ function initQuillEditor() {
 
 // ===== UI INTERACTIONS =====
 
+// Track if we're editing an existing note
+let editingNoteId = null;
+
+// Edit an existing note
+function editNote(note) {
+    editingNoteId = note.id;
+
+    // Switch to notes view if not already there
+    if (currentView !== 'notes') {
+        showView('notes');
+    }
+
+    // Show and populate the form
+    const form = document.getElementById('createNoteForm');
+    form.classList.remove('hidden');
+
+    // Populate form fields
+    document.getElementById('attachToLocation').checked = !!note.locationId;
+    document.getElementById('locationNickname').value = note.locationNickname || '';
+    document.getElementById('scheduleNote').checked = !!note.scheduledTime;
+
+    if (note.scheduledTime) {
+        document.getElementById('scheduleOptions').classList.remove('hidden');
+        // Format datetime for input
+        const date = new Date(note.scheduledTime);
+        const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+            .toISOString()
+            .slice(0, 16);
+        document.getElementById('scheduledDateTime').value = localDateTime;
+    }
+
+    // Set Quill content
+    quill.root.innerHTML = note.content;
+
+    // Scroll to form and focus
+    const mainContent = document.querySelector('.main-content');
+    mainContent.scrollTop = 0;
+    setTimeout(() => quill.focus(), 100);
+
+    // Update form heading to indicate editing
+    const formHeading = form.querySelector('h3');
+    if (formHeading) {
+        formHeading.textContent = `Edit Note #${note.id}`;
+    }
+}
+
 // Toggle create note form visibility
 function toggleCreateNoteForm() {
     const form = document.getElementById('createNoteForm');
     if (form.classList.contains('hidden')) {
+        // Reset editing state when opening for new note
+        editingNoteId = null;
+        const formHeading = form.querySelector('h3');
+        if (formHeading) {
+            formHeading.textContent = 'Create New Note';
+        }
+
         form.classList.remove('hidden');
         // Scroll to the top of the main content area to show the form
         const mainContent = document.querySelector('.main-content');
@@ -1165,6 +1263,14 @@ function toggleCreateNoteForm() {
 function hideCreateNoteForm() {
     const form = document.getElementById('createNoteForm');
     form.classList.add('hidden');
+
+    // Reset editing state
+    editingNoteId = null;
+    const formHeading = form.querySelector('h3');
+    if (formHeading) {
+        formHeading.textContent = 'Create New Note';
+    }
+
     // Clear form
     quill.setContents([]);
     document.getElementById('locationNickname').value = '';
@@ -1383,17 +1489,25 @@ async function saveNote() {
         scheduledTime = new Date(scheduledDateTime).toISOString();
     }
 
-    // Create note
-    const note = {
+    // Create or update note
+    const noteData = {
         content,
         locationId,
         locationNickname: finalLocationNickname,
         scheduledTime,
-        hashtags,
-        createdAt: new Date().toISOString()
+        hashtags
     };
 
-    await addNote(note);
+    if (editingNoteId) {
+        // Update existing note
+        await updateNote(editingNoteId, noteData);
+        alert('Note updated successfully!');
+    } else {
+        // Create new note
+        noteData.createdAt = new Date().toISOString();
+        await addNote(noteData);
+        alert('Note created successfully!');
+    }
 
     // Hide the form and clear it
     hideCreateNoteForm();
@@ -1401,8 +1515,6 @@ async function saveNote() {
     // Refresh notes list
     await refreshNotes();
     await updateLocationInfo();
-
-    alert('Note saved successfully!');
 }
 
 // ===== INITIALIZATION =====
