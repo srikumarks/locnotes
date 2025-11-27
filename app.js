@@ -1251,18 +1251,64 @@ function initQuillEditor() {
 // Track if we're editing an existing note
 let editingNoteId = null;
 
-// Populate saved locations datalist
-async function populateSavedLocations() {
-    const datalist = document.getElementById('savedLocations');
+// Show location dropdown with all saved locations
+async function showLocationDropdown(filterText = '') {
+    const dropdown = document.getElementById('locationDropdown');
     const locations = await getAllLocations();
 
-    datalist.innerHTML = '';
-    locations.forEach(loc => {
-        const option = document.createElement('option');
-        option.value = loc.nickname;
-        option.textContent = `${loc.nickname} (${loc.hashtags && loc.hashtags.length > 0 ? loc.hashtags.map(t => '#' + t).join(' ') : 'no tags'})`;
-        datalist.appendChild(option);
+    if (locations.length === 0) {
+        dropdown.classList.remove('active');
+        return;
+    }
+
+    // Filter locations based on input
+    const lowerFilter = filterText.toLowerCase();
+    const filteredLocations = locations.filter(loc =>
+        loc.nickname.toLowerCase().includes(lowerFilter) ||
+        (loc.hashtags && loc.hashtags.some(tag => tag.includes(lowerFilter)))
+    );
+
+    if (filteredLocations.length === 0 && filterText) {
+        dropdown.classList.remove('active');
+        return;
+    }
+
+    // Build dropdown items
+    dropdown.innerHTML = '';
+    const locationsToShow = filteredLocations.length > 0 ? filteredLocations : locations;
+
+    locationsToShow.forEach(loc => {
+        const item = document.createElement('div');
+        item.className = 'location-dropdown-item';
+
+        const name = document.createElement('div');
+        name.className = 'location-dropdown-item-name';
+        name.textContent = loc.nickname;
+
+        const tags = document.createElement('div');
+        tags.className = 'location-dropdown-item-tags';
+        tags.textContent = loc.hashtags && loc.hashtags.length > 0
+            ? loc.hashtags.map(t => '#' + t).join(' ')
+            : 'No tags';
+
+        item.appendChild(name);
+        item.appendChild(tags);
+
+        item.addEventListener('click', () => {
+            document.getElementById('locationNickname').value = loc.nickname;
+            dropdown.classList.remove('active');
+        });
+
+        dropdown.appendChild(item);
     });
+
+    dropdown.classList.add('active');
+}
+
+// Hide location dropdown
+function hideLocationDropdown() {
+    const dropdown = document.getElementById('locationDropdown');
+    dropdown.classList.remove('active');
 }
 
 // Edit an existing note
@@ -1277,9 +1323,6 @@ async function editNote(note) {
     // Show and populate the form
     const form = document.getElementById('createNoteForm');
     form.classList.remove('hidden');
-
-    // Populate saved locations dropdown
-    await populateSavedLocations();
 
     // Populate form fields
     document.getElementById('attachToLocation').checked = !!note.locationId;
@@ -1312,7 +1355,7 @@ async function editNote(note) {
 }
 
 // Toggle create note form visibility
-async function toggleCreateNoteForm() {
+function toggleCreateNoteForm() {
     const form = document.getElementById('createNoteForm');
     if (form.classList.contains('hidden')) {
         // Reset editing state when opening for new note
@@ -1321,9 +1364,6 @@ async function toggleCreateNoteForm() {
         if (formHeading) {
             formHeading.textContent = 'Create New Note';
         }
-
-        // Populate saved locations dropdown
-        await populateSavedLocations();
 
         form.classList.remove('hidden');
         // Scroll to the top of the main content area to show the form
@@ -1470,6 +1510,24 @@ function setupEventListeners() {
         // Delay to allow clicking on autocomplete items
         setTimeout(() => {
             document.getElementById('autocompleteDropdown').classList.remove('active');
+        }, 200);
+    });
+
+    // Location nickname field for custom dropdown
+    const locationNickname = document.getElementById('locationNickname');
+
+    locationNickname.addEventListener('focus', () => {
+        showLocationDropdown('');
+    });
+
+    locationNickname.addEventListener('input', (e) => {
+        showLocationDropdown(e.target.value);
+    });
+
+    locationNickname.addEventListener('blur', () => {
+        // Delay to allow clicking on dropdown items
+        setTimeout(() => {
+            hideLocationDropdown();
         }, 200);
     });
 
