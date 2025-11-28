@@ -373,6 +373,84 @@ async function isNoteDismissed(noteId, currentTimeWindow) {
     });
 }
 
+// ===== NOTIFICATIONS =====
+
+let notificationPermission = 'default';
+let previousTopNoteId = null;
+let shownTimeAlerts = new Set(); // Track shown time-based alerts (noteId-timeWindow)
+
+// Request notification permission
+async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        console.log('Notifications not supported');
+        return false;
+    }
+
+    if (Notification.permission === 'granted') {
+        notificationPermission = 'granted';
+        return true;
+    }
+
+    if (Notification.permission === 'denied') {
+        notificationPermission = 'denied';
+        return false;
+    }
+
+    try {
+        const permission = await Notification.requestPermission();
+        notificationPermission = permission;
+        return permission === 'granted';
+    } catch (error) {
+        console.error('Error requesting notification permission:', error);
+        return false;
+    }
+}
+
+// Show notification for a note
+function showNoteNotification(note, reason) {
+    if (notificationPermission !== 'granted') {
+        return;
+    }
+
+    // Extract plain text from HTML content
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = note.content;
+    const plainText = (tempDiv.textContent || tempDiv.innerText).trim();
+
+    // Truncate to 80 characters
+    let bodyText = plainText;
+    if (bodyText.length > 80) {
+        bodyText = bodyText.substring(0, 80) + '...';
+    }
+
+    // Create notification title
+    let title = '';
+    if (reason === 'location') {
+        title = `📍 ${note.locationNickname || 'Location Note'}`;
+    } else if (reason === 'time') {
+        title = `⏰ Scheduled Note`;
+    }
+
+    // Show notification
+    try {
+        const notification = new Notification(title, {
+            body: bodyText,
+            icon: '/favicon.ico',
+            tag: `note-${note.id}`,
+            requireInteraction: false
+        });
+
+        // Click notification to view note
+        notification.onclick = () => {
+            window.focus();
+            showView('noteDetail', { noteId: note.id });
+            notification.close();
+        };
+    } catch (error) {
+        console.error('Error showing notification:', error);
+    }
+}
+
 // ===== GEOLOCATION =====
 
 let currentPosition = null;
@@ -986,11 +1064,45 @@ async function refreshNotes() {
 
     if (relevantNotes.length === 0) {
         notesContainer.innerHTML = '<p>No notes for this location.</p>';
+        // Reset top note tracking when no notes
+        previousTopNoteId = null;
     } else {
         relevantNotes.forEach(scored => {
             notesContainer.appendChild(renderNote(scored.note, false));
         });
+
+        // Check if top note changed (for location-based notification)
+        const currentTopNoteId = relevantNotes[0].note.id;
+        if (previousTopNoteId !== null && previousTopNoteId !== currentTopNoteId) {
+            // Top note changed - show notification
+            showNoteNotification(relevantNotes[0].note, 'location');
+        }
+        previousTopNoteId = currentTopNoteId;
     }
+
+    // Check for time-based notifications
+    // Show alerts for scheduled notes in current time window that haven't been shown yet
+    for (const scored of stickyNotesWithScores) {
+        const note = scored.note;
+        const alertKey = `${note.id}-${currentTimeWindow}`;
+
+        if (!shownTimeAlerts.has(alertKey)) {
+            showNoteNotification(note, 'time');
+            shownTimeAlerts.add(alertKey);
+        }
+    }
+
+    // Clean up old shown alerts (remove alerts older than 1 hour)
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const cleanedAlerts = new Set();
+    for (const alertKey of shownTimeAlerts) {
+        // alertKey format: "noteId-timeWindow"
+        const timeWindow = alertKey.split('-').slice(1).join('-');
+        if (timeWindow > oneHourAgo) {
+            cleanedAlerts.add(alertKey);
+        }
+    }
+    shownTimeAlerts = cleanedAlerts;
 }
 
 // ===== LOCATION INFO =====
@@ -1666,6 +1778,9 @@ async function init() {
     try {
         // Initialize database
         await initDB();
+
+        // Request notification permission
+        await requestNotificationPermission();
 
         // Initialize Quill editor
         initQuillEditor();
