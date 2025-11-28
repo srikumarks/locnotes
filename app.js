@@ -502,7 +502,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * c; // Distance in meters
 }
 
-// Check if location matches current position (within 10m radius)
+// Check if location matches current position (within 30m radius)
 function isLocationMatch(location) {
     if (!currentPosition || !location) return false;
 
@@ -513,7 +513,7 @@ function isLocationMatch(location) {
         location.longitude
     );
 
-    return distance <= 10; // 10 meter radius
+    return distance <= 30; // 30 meter radius
 }
 
 // Find matching location by coordinates
@@ -928,24 +928,24 @@ async function calculateLocationProximity(note) {
         noteLocation.longitude
     );
 
-    // Within 10m = perfect match
-    if (distance <= 10) {
+    // Within 30m = perfect match
+    if (distance <= 30) {
         return 1000;
     }
 
-    // Within 50m = close
-    if (distance <= 50) {
-        return 800 - (distance * 4); // 800 to 600
+    // Within 100m = close
+    if (distance <= 100) {
+        return 900 - (distance * 3); // 900 to 600
     }
 
-    // Within 100m = nearby
-    if (distance <= 100) {
-        return 600 - (distance * 2); // 600 to 400
+    // Within 200m = nearby
+    if (distance <= 200) {
+        return 600 - (distance * 1.5); // 600 to 300
     }
 
     // Within 500m = visible on map
     if (distance <= 500) {
-        return 400 - (distance * 0.5); // 400 to 150
+        return 300 - (distance * 0.4); // 300 to 100
     }
 
     // Beyond 500m - very low priority
